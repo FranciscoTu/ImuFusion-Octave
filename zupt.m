@@ -14,8 +14,8 @@ sigma_vel = 0.01;           % zero-velocity update measurement noise (m/s)
 
 
 %% zero-velocity detector parameters
-cova  = 0.01^2; 
-covw  = (0.1*pi/180)^2;     
+cova  = 0.01^2;
+covw  = (0.1*pi/180)^2;
 W     = 5; % window size
 gamma  = 0.3e5;
 
@@ -91,42 +91,42 @@ for k = 2:N
     w = imu_data(4:6, k-1); % - bias_w;
     quat = x(7:10,1);
     a = imu_data(1:3, k-1); % - bias_a;
-    
+
     % continuous state transition matrix
     Ow = [0     -w(1)   -w(2)    -w(3);...
           w(1)   0       w(3)    -w(2);...
           w(2)  -w(3)    0        w(1);...
           w(3)   w(2)   -w(1)     0  ];
     Vq = compVq(quat, a);
-    
+
     Fc = zeros(10);
     Fc(1:3, 4:6) = eye(3);
     Fc(4:10,7:10)= [Vq; 0.5*Ow];
-    
+
     % continuous process covariance
     Gq = 0.5* [-quat(2)  -quat(3)   -quat(4); ...
                 quat(1)  -quat(4)    quat(3); ...
                 quat(4)   quat(1)   -quat(2); ...
-               -quat(3)   quat(2)    quat(1)];       
+               -quat(3)   quat(2)    quat(1)];
     Qc = zeros(10);
     Qc(4:6, 4:6)  =  sigma_acc^2*eye(3);
     Qc(7:10,7:10) =  sigma_gyro^2*(Gq*Gq');
-    
+
     % discretilization
     F = eye(10) + Fc* dt;
     Q = Qc* dt;
-    
+
     %% state propagation
     R_S_n = quat2dcm(quat');
     acc = R_S_n' * a - [0; 0;  g];
-    
+
     x(1:3) = x(1:3) + x(4:6)* dt + 0.5*acc* dt^2;
     x(4:6) = x(4:6) + acc* dt;
-    
+
     quat = (eye(4) + 0.5*Ow* dt)*quat;
     quat = quat/norm(quat);
     x(7:10) = quat;
-    
+
     %% covariance propagation
     P = F*P*F' + Q;
 
@@ -134,17 +134,17 @@ for k = 2:N
     if iszv(k) == 1
         K = (P*H')/(H*P*H'+R);
         y = -x(4:6);
-        
+
         x = x + K*y;
         x(7:10) = x(7:10)/norm(x(7:10));
-        
+
         P = (eye(10)-K*H)*P;
     end
-    
+
     P = (P+P')/2;
-    
+
     x_r(:,k) = x;
-      
+
 end
 
 
@@ -170,12 +170,12 @@ grid on
 L = size(x_r,2);
 SamplePlotFreq = 4;
 Spin = 120;
-SixDofAnimation(x_r(1:3,:)', quat2dcm(quatinv(x_r(7:10,:)')), ...
+SixDOFanimation(x_r(1:3,:)', quat2dcm(quatinv(x_r(7:10,:)')), ...
                 'SamplePlotFreq', SamplePlotFreq, 'Trail', 'All',...
                 'Position', [9 39 1280 768],...
                 'View', [(100:(Spin/(L-1)):(100+Spin))', 10*ones(L, 1)],...
                 'AxisLength', 0.1, 'ShowArrowHead', false, ...
-                'Xlabel', 'X (m)', 'Ylabel', 'Y (m)', 'Zlabel', 'Z (m)',... 
+                'Xlabel', 'X (m)', 'Ylabel', 'Y (m)', 'Zlabel', 'Z (m)',...
                 'ShowLegend', false,...
                 'CreateVideo', false);
 
